@@ -1,0 +1,2 @@
+# FTBot
+Futures bot trading
