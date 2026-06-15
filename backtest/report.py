@@ -5,7 +5,7 @@ from backtest.engine import Trade
 
 def print_report(trades: list[Trade], instrument: str = '') -> None:
     if not trades:
-        print("Không có trade nào.")
+        print("No trades found.")
         return
 
     total = len(trades)
@@ -41,7 +41,7 @@ def print_report(trades: list[Trade], instrument: str = '') -> None:
     worst_day = min(daily_pnl.values()) if daily_pnl else 0
     daily_cap_hits = sum(1 for v in daily_pnl.values() if v <= -500)
 
-    title = f"FTBot Backtest Report — {instrument}" if instrument else "FTBot Backtest Report"
+    title = f"FTBot Backtest Report -- {instrument}" if instrument else "FTBot Backtest Report"
     sep = "=" * 58
     print(f"\n{sep}")
     print(f"  {title}")
@@ -58,7 +58,7 @@ def print_report(trades: list[Trade], instrument: str = '') -> None:
     print(sep)
     print(f"  Max Drawdown     : ${max_dd:,.2f}")
     print(f"  Worst Day        : ${worst_day:,.2f}")
-    print(f"  Daily Cap Hits   : {daily_cap_hits} ngày")
+    print(f"  Daily Cap Hits   : {daily_cap_hits} days")
     print(sep)
     print(f"  Exit Reasons:")
     for reason, count in sorted(by_reason.items()):

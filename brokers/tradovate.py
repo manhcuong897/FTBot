@@ -43,7 +43,7 @@ class TradovateClient:
         self.access_token = data["accessToken"]
         # token thường hết hạn sau 80 phút — buffer 5 phút
         self.token_expiry = time.time() + 75 * 60
-        print(f"[Auth] OK — token hết hạn sau 75 phút")
+        print(f"[Auth] OK — token valid for 75 minutes")
 
     def _headers(self) -> dict:
         if not self.access_token:

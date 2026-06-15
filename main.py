@@ -17,10 +17,10 @@ def run_backtest(instrument: str, config: dict, data_dir: Path,
                  start: str | None, end: str | None, save_log: bool) -> list:
     data_path = data_dir / f'{instrument}_5min.csv'
     if not data_path.exists():
-        print(f"[SKIP] Không tìm thấy file: {data_path}")
+        print(f"[SKIP] File not found: {data_path}")
         return []
 
-    print(f"\n[{instrument}] Đang load dữ liệu từ {data_path} ...")
+    print(f"\n[{instrument}] Loading data from {data_path} ...")
     df = load_ohlcv(str(data_path), config['trading']['data_timezone'])
     df = filter_session(df, config['trading']['session_start_vn'], config['trading']['session_end_vn'])
 
@@ -30,7 +30,7 @@ def run_backtest(instrument: str, config: dict, data_dir: Path,
         df = df[df['datetime_vn'].dt.date.astype(str) <= end]
 
     df = df.reset_index(drop=True)
-    print(f"[{instrument}] {len(df)} nến trong session, chạy backtest ...")
+    print(f"[{instrument}] {len(df)} bars in session, running backtest ...")
 
     strategy = EMAEngulfingStrategy(config['strategy'])
     engine = BacktestEngine(config, instrument)
@@ -47,12 +47,11 @@ def run_backtest(instrument: str, config: dict, data_dir: Path,
 
 def main():
     parser = argparse.ArgumentParser(description='FTBot Backtest Engine')
-    parser.add_argument('--instrument', choices=['MNQ', 'MGC', 'ALL'], default='ALL',
-                        help='Instrument cần backtest')
-    parser.add_argument('--data-dir', default='data', help='Thư mục chứa CSV')
-    parser.add_argument('--start', default=None, help='Ngày bắt đầu YYYY-MM-DD')
-    parser.add_argument('--end', default=None, help='Ngày kết thúc YYYY-MM-DD')
-    parser.add_argument('--save-log', action='store_true', help='Lưu trade log ra CSV')
+    parser.add_argument('--instrument', choices=['MNQ', 'MGC', 'ALL'], default='ALL')
+    parser.add_argument('--data-dir', default='data')
+    parser.add_argument('--start', default=None, help='Start date YYYY-MM-DD')
+    parser.add_argument('--end', default=None, help='End date YYYY-MM-DD')
+    parser.add_argument('--save-log', action='store_true')
     parser.add_argument('--config', default='config/settings.yaml')
     args = parser.parse_args()
 
