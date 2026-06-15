@@ -14,6 +14,7 @@ Bot giao dịch tự động cho các tài khoản prop firm: Bulenox 50k, TopSt
 | Ngôn ngữ | Python |
 | Khung giờ | 06:00–09:00 SA (UTC+7 / Việt Nam) |
 | Khối lượng | 5 contracts/lệnh |
+| GitHub | https://github.com/manhcuong897/FTBot.git |
 
 ---
 
@@ -47,8 +48,6 @@ Bot giao dịch tự động cho các tài khoản prop firm: Bulenox 50k, TopSt
 2. Trong 3–5 nến trước [0], có ít nhất 1 nến có High chạm/tiệm cận EMA 21
 3. Nến Engulfing xuất hiện tại vùng EMA 21 đó
 
-> **Lưu ý chưa xác định:** Ngưỡng "tiệm cận" EMA 21 (ticks) chưa được định nghĩa — cần xác nhận trước khi backtest.
-
 ---
 
 ## Quản trị rủi ro
@@ -65,46 +64,90 @@ Bot giao dịch tự động cho các tài khoản prop firm: Bulenox 50k, TopSt
 ### Breakeven / Trailing SL
 - Khi lợi nhuận đạt **X ticks** → dời SL về Entry + **Y ticks** (Long) / Entry − Y ticks (Short)
 - SL mới giữ cố định, không dời ngược lại
-- X và Y là tham số người dùng có thể tùy chỉnh
+- **Tham số mặc định hiện tại:** X = 30 ticks, Y = 5 ticks
+- **Cần điều chỉnh:** X = 50 ticks, Y = 15 ticks (backtest cho thấy BE quá sớm gây avg win chỉ $25)
 
 ### Daily Loss Cap
 - Tổng lỗ tối đa trong ngày: **$500** (cộng gồm cả MNQ + MGC)
 - Bot tự động dừng giao dịch khi đạt ngưỡng này
-- Ngưỡng $500 = 50% daily limit của prop firm (buffer an toàn)
 
 ---
 
-## Kiến trúc dự kiến
+## Kiến trúc đã xây dựng
 
 ```
 FTBot/
 ├── core/
-│   ├── risk_guard.py       # Hard rules: daily loss cap, prop firm limits
-│   ├── account_state.py    # Theo dõi P&L, drawdown realtime
-│   └── order_manager.py    # OCO, bracket, position tracking
+│   ├── account_state.py    # Theo dõi P&L, daily loss theo ngày
+│   └── risk_guard.py       # Kiểm tra daily cap, SL hard cap
 ├── brokers/
-│   └── tradovate.py        # WebSocket feed + REST orders
+│   └── tradovate.py        # REST client: auth, getChart, parse_bars
 ├── strategies/
-│   ├── base_strategy.py    # Interface chung
-│   └── ema_engulfing.py    # Strategy EMA 200/21 + Engulfing
+│   ├── base_strategy.py    # Abstract base class
+│   └── ema_engulfing.py    # EMA 200/21 + Engulfing + EMA21 retest
 ├── backtest/
-│   └── engine.py           # Backtest engine offline
+│   ├── data_loader.py      # Đọc CSV, convert timezone sang VN
+│   ├── engine.py           # Vòng lặp bar-by-bar, breakeven SL, daily cap
+│   └── report.py           # Win rate, profit factor, max drawdown, trade log
+├── scripts/
+│   ├── download_historical.py  # Tải từ Tradovate API (cần đăng ký app)
+│   └── download_yfinance.py    # Tải từ yfinance (không cần API key, 59 ngày)
 ├── config/
-│   ├── bulenox.yaml        # Rule limits từng quỹ
+│   ├── settings.yaml       # Tất cả tham số
+│   ├── bulenox.yaml
 │   ├── topstep.yaml
 │   └── lucid.yaml
-└── main.py
+├── data/                   # Đặt file CSV vào đây (không commit)
+├── requirements.txt
+└── main.py                 # CLI entry point
+```
+
+---
+
+## Cách chạy
+
+```bash
+# Cài dependencies
+pip install -r requirements.txt
+
+# Tải dữ liệu (59 ngày gần nhất, không cần API key)
+python scripts/download_yfinance.py --instrument ALL
+
+# Chạy backtest
+python main.py --instrument ALL --save-log
+
+# Chạy từng instrument
+python main.py --instrument MNQ --start 2026-01-01
 ```
 
 ---
 
 ## Thứ tự xây dựng
 
-1. **Backtest engine** — validate strategy trước khi kết nối broker thật
-2. **Risk Guard + Daily cap** — quan trọng nhất, bảo vệ prop firm account
-3. **Tradovate adapter** — kết nối, đọc giá realtime, đặt lệnh
-4. **Strategy engine** — chạy live với signal từ Tradovate feed
-5. **Dashboard** — monitor P&L 3 quỹ, chỉ làm sau khi strategy đã profit
+1. ✅ **Backtest engine** — validate strategy trước khi kết nối broker thật
+2. ⬜ **Cải thiện tham số** — điều chỉnh BE trigger/lock, lấy thêm dữ liệu 6–12 tháng
+3. ⬜ **Risk Guard + Daily cap** — hoàn thiện cho live trading
+4. ⬜ **Tradovate adapter** — kết nối, đọc giá realtime, đặt lệnh
+5. ⬜ **Strategy engine** — chạy live với signal từ Tradovate feed
+6. ⬜ **Dashboard** — monitor P&L 3 quỹ, chỉ làm sau khi strategy đã profit
+
+---
+
+## Kết quả backtest sơ bộ (59 ngày, 04/2026–06/2026)
+
+| Instrument | Trades | Win% | P&L | Ghi chú |
+|---|---|---|---|---|
+| MNQ | 0 | — | — | Cần thêm dữ liệu, khung giờ overnight ít signal |
+| MGC | 5 | 60% | -$274.98 | Sample quá nhỏ, BE params cần chỉnh |
+
+**Vấn đề phát hiện:**
+- BE trigger 30 ticks quá sớm → avg win chỉ $25 (5 ticks), avg loss $175 (35 ticks)
+- 3/5 trade thoát tại BE_SL — cho thấy price thường hit 30 ticks rồi quay đầu
+- Cần tối thiểu 6–12 tháng dữ liệu để kết luận có nghĩa
+
+**Tham số cần thử trong lần backtest tiếp:**
+- BE trigger: 50 ticks | BE lock: 15 ticks
+- Lấy dữ liệu dài hơn qua Polygon.io free (2 năm)
 
 ---
 
@@ -112,19 +155,17 @@ FTBot/
 
 Khung 06:00–09:00 SA VN tương đương **6:00–9:00 PM ET (mùa đông)**:
 - Đây là phiên tối Mỹ / Asian overnight — không phải RTH
-- **MNQ:** Volume thấp (10–20% RTH), dễ fake signal → cần volume filter, xem xét thêm phiên RTH
-- **MGC:** Phù hợp hơn vì Tokyo session mở lúc 7:00 AM VN, gold có thanh khoản châu Á
-
-Cần cân nhắc thêm phiên **8:30–9:30 PM VN** (pre-market Mỹ) cho MNQ.
+- **MNQ:** Volume thấp, ít signal trong khung này
+- **MGC:** Phù hợp hơn vì Tokyo session mở lúc 7:00 AM VN
 
 ---
 
-## Tham số cần xác nhận trước backtest
+## Tham số cần xác nhận
 
-- [ ] Ngưỡng "tiệm cận" EMA 21: bao nhiêu ticks?
-- [ ] Breakeven trigger X (ticks) và lock Y (ticks)
-- [ ] Có thêm phiên giao dịch nào ngoài 6h–9h SA không?
-- [ ] Volume filter: điều kiện volume tối thiểu trên nến Engulfing?
+- [ ] Điều chỉnh BE trigger X và lock Y (đề xuất: 50 / 15)
+- [ ] Lấy dữ liệu 6–12 tháng (Polygon.io free hoặc nguồn khác)
+- [ ] Xem xét thêm phiên RTH (9:30–12:00 ET = 8:30–11:00 PM VN)
+- [ ] Volume filter trên nến Engulfing
 
 ---
 
@@ -137,3 +178,12 @@ Cần cân nhắc thêm phiên **8:30–9:30 PM VN** (pre-market Mỹ) cho MNQ.
 | Lucid Trading 50k | Xem tài liệu quỹ | Xem tài liệu quỹ | Xem tài liệu quỹ |
 
 Bot hard cap: **$500/ngày** (50% buffer so với limit quỹ).
+
+---
+
+## Ghi chú kỹ thuật
+
+- **Windows terminal:** Dùng ASCII trong print() — Windows cp1252 không hỗ trợ UTF-8 console
+- **Tradovate API:** Endpoint `/md/getChart` cần đăng ký App CID/SEC riêng — chưa hoạt động
+- **yfinance:** MNQ=F và MGC=F cho giá giống hệt MNQ/MGC, giới hạn 59 ngày 5-min
+- **Data timezone:** yfinance trả về UTC, script tự convert sang VN time khi filter session
