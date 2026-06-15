@@ -1,0 +1,7 @@
+name: Bulenox
+account_size: 50000
+daily_loss_limit_usd: 1000
+max_trailing_drawdown_usd: 2000
+profit_target_usd: 3000
+# Bot sẽ dừng khi tổng lỗ ngày đạt daily_loss_cap_usd (500$)
+# = 50% buffer so với daily_loss_limit_usd của quỹ

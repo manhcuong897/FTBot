@@ -1,0 +1,28 @@
+strategy:
+  ema_trend_period: 200
+  ema_value_period: 21
+  ema_proximity_ticks: 10      # ngưỡng "tiệm cận" EMA 21
+  retest_lookback: 5           # số nến nhìn lại để xét retest
+
+risk:
+  rr_ratio: 3.0                # R:R 1:3
+  sl_buffer_ticks: 2           # buffer dưới Low / trên High
+  sl_max_ticks: 50             # hard cap SL
+  breakeven_trigger_ticks: 30  # đạt X ticks lời thì dời SL
+  breakeven_lock_ticks: 5      # dời SL về Entry + Y ticks
+  daily_loss_cap_usd: 500      # dừng ngày khi lỗ $500
+
+trading:
+  contracts: 5
+  session_start_vn: "06:00"   # giờ VN (UTC+7)
+  session_end_vn: "09:00"
+  close_on_session_end: true
+  data_timezone: "US/Eastern"  # timezone của file CSV
+
+instruments:
+  MNQ:
+    tick_size: 0.25
+    tick_value: 0.50
+  MGC:
+    tick_size: 0.10
+    tick_value: 1.00

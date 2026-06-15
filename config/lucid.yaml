@@ -1,0 +1,5 @@
+name: Lucid Trading
+account_size: 50000
+daily_loss_limit_usd: 1000    # cần xác nhận lại với tài liệu quỹ
+max_trailing_drawdown_usd: 2000
+profit_target_usd: 3000

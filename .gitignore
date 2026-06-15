@@ -1,0 +1,18 @@
+# Credentials
+.env
+
+# Data (file CSV lớn, không cần commit)
+data/*.csv
+results_*.csv
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
